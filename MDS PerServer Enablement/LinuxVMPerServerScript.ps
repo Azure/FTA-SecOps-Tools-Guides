@@ -1,0 +1,133 @@
+
+
+<#Linux
+
+Select operating system: Linux
+
+Select Deployment method: Local Script
+
+Click "Download onboarding package"
+
+Unzip/Extract the packaged onboarding script
+
+Execute these python commands line by line in the same folder (run in python and not bash):
+
+import base64
+f = open('MicrosoftDefenderATPOnboardingLinuxServer.py', 'rb') 
+text = f.read() 
+f.close() 
+base64_encoded_text = base64.b64encode(text)
+with open('ouput.txt', 'w') as f:
+   f.write(str(base64_encoded_text))
+Output.txt now holds the Base64EncodedPackage
+
+Notes:
+
+You must include a tab before f.write(str(base64_encoded_text)) or it will not be compliant with Python syntax)
+You will need to remove the leading characters b' from the front and the trailing ‘ at the end of the content of output.txt
+#>
+
+
+
+
+#-------------------------------------------------------------------------------------------------------------
+#Start Script
+#-------------------------------------------------------------------------------------------------------------
+
+# Prompt for variables
+$subscriptionId = Read-Host "Enter the subscription ID"
+$ServerPlan = Read-Host "Enter ServerPlan as P1 or P2"
+$workspaceId = Read-Host "Enter the workspace ID"
+$workspaceKey = Read-Host "Enter the workspace key"
+$resourceGroup = Read-Host "Enter the resource group name"
+$vmName = Read-Host "Enter the VM name"
+$mdeOS = Read-Host "Enter OS"
+
+
+# Set the subscription context
+Write-Output "Setting the subscription context..." 
+$context = Set-AzContext -Subscription $subscriptionId
+$context
+
+# Enable Defender for Servers on Subscription
+$enableDefenderServers = Read-Host "Do you want to enable Defender for Servers on the subscription? (Y/N)"
+if ($enableDefenderServers -eq "Y") {
+    Write-Output "Enabling Defender for Servers on the subscription..."
+    Set-AzSecurityPricing -Name "VirtualMachines" -PricingTier "Standard" -SubPlan $ServerPlan
+}
+#--------------------------------------------------------------------------------------------------------------------
+# Control MDE deployment
+#--------------------------------------------------------------------------------------------------------------------
+
+#Get Security Settings for Sentinel, MCAS, WDATP(MDE), Unified and Linux
+Get-AzSecuritySetting
+$disableMDEAutoprovisiong = Read-Host "Do you wish to disable autoprovisioning of MDE? (Y/N)"
+if ($disableMDEAutoprovisiong -eq "Y") {
+#MDE is turned on to auto-onboarding by default. You will need to turn it off to control the deployment
+Set-AzSecuritySetting -SettingName WDATP -SettingKind DataExportSettings -Enabled $false
+}
+else{ Write-Output "Enabling MDE autoprovisioning. Microsoft Defender for Cloud will autoprovision MDE for all current and future systems"
+#use the same command but Enabled $true to turn it back on
+Set-AzSecuritySetting -SettingName WDATP -SettingKind DataExportSettings -Enabled $true
+}
+# Enable MDE for Windows 2012 and 2016 servers using Unified Solution capability
+$enableMdeWindows = Read-Host "Do you want to enable MDE for Windows 2012 and 2016 servers? (Y/N)"
+if ($enableMdeWindows -eq "Y") {
+    Write-Output "Enabling MDE for Windows 2012 and 2016 servers..."
+    Set-AzSecuritySetting -SettingName WDATP_UNIFIED_SOLUTION -SettingKind DataExportSettings -Enabled $true
+}
+else{ Write-Output "No requirement for Unified agent. Continuing to next step......"
+}
+
+#-------------------------------------------------------------------------------------------------------------------
+#Enable/Disable Azure Monitoring Agent Autoprovisiong
+#-------------------------------------------------------------------------------------------------------------------
+
+#Turn autoprovisioning off
+$disableAMAAutoprovisioning = Read-Host "Do you wish to disable Azure Monitoring autoprovisioning? (Y/N)"
+if ($disableAMAAutoprovisioning -eq "Y") {
+#This default setting should now be turned off. 
+Set-AzSecurityAutoProvisioningSetting -Name "default"
+}
+else { Write-Output "Azure Monitoring Agent will now be autoprovisioned across your Subscription for any current and future systems"
+#Turn autoprovisioning on
+Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
+}
+#-------------------------------------------------------------------------------------------------------------------
+# Install Extensions for enablement
+#-------------------------------------------------------------------------------------------------------------------
+# Install Azure Monitor Linux Agent extension
+$installMonitorAgent = Read-Host "Do you want to install the Azure Monitor Windows Agent extension? (Y/N)"
+if ($installMonitorAgent -eq "Y") {
+    Write-Output "Installing Azure Monitor Linux Agent extension..."
+    Set-AzVMExtension -ResourceGroupName $resourceGroup -VMName $vmName -Name "AzureMonitorLinuxAgent" -ExtensionType "AzureMonitorLinuxAgent" -Publisher "Microsoft.Azure.Monitor" -EnableAutomaticUpgrade $true -TypeHandlerVersion "1.0"
+}
+else{ Write-Host "Not installing Azure Monitoring Agent. Continuing to next step......"
+}
+
+# Install Microsoft Defender for Endpoint
+$installMde = Read-Host "Do you want to install Microsoft Defender for Endpoint? (Y/N)"
+if ($installMde -eq "Y") {
+    Write-Output "Installing Microsoft Defender for Endpoint..."
+    $vm = Get-AzVM -ResourceGroupName $resourceGroup -Name $vmName
+
+$mdePackage = Invoke-AzRestMethod -Uri https://management.azure.com/subscriptions/$($vm.id.split('/')[2])/providers/Microsoft.Security/mdeOnboardings/?api-version=2021-10-01-preview
+
+#You can add forceReOnboarding = $true below if you want to force onboarding again
+$Setting = @{
+    "azureResourceId" = $vm.Id
+    "vNextEnabled" = $true
+}
+$protectedSetting = @{
+    "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackagelinux
+}
+# OS == Windows or Linux
+Set-AzVMExtension -Name 'MDE.Linux' -ExtensionType 'MDE.Linux' -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Location $vm.Location -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Settings $Setting -ProtectedSettings $protectedSetting -TypeHandlerVersion '1.0'
+}
+else{ Write-Host "Not Installing Microsoft Defender for Endpoint. Script Complete"
+}
+
+
+
+
+az vm extension set -n MDE.Linux --publisher Microsoft.Azure.AzureDefenderForServers --vm-name <VM Name> -g <VM Resource Group> --enable-auto-upgrade false --no-auto-upgrade-minor-version true --settings '{\"azureResourceId\":\"<Resource ID>\", \"defenderForServersWorkspaceId\":\"<subscription id>\", \"forceReOnboarding\":true, \"provisionedBy\":\"Manual\" }' --protected-settings '{ \"defenderForEndpointOnboardingScript\":\"<Base64EncodingPackage>\"}'
