@@ -72,7 +72,7 @@ Microsoft Defender for Cloud.
 
 Understanding Defender for Cloud Regulatory Compliance: [Defender for
 Cloud - Regulatory Compliance -
-YouTube](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dm_tfHVzj2nU&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110727859945%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=gLxgZHMIhuda1xRwqgB%2Fwf3Mx6MI9XvuFyIB8nC%2F1WE%3D&reserved=0)
+YouTube](https://youtu.be/m_tfHVzj2nU?si=zRlmIKZWtzOKj7vw)
 
 Brief overview of compliance and governance as delivered at your
 fingertips by Microsoft Defender for Cloud.
@@ -80,38 +80,38 @@ fingertips by Microsoft Defender for Cloud.
 Cloud Academy offerings:
 
 [Getting Started with Microsoft Defender for Cloud Course \| Cloud
-Academy](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fcloudacademy.com%2Fcourse%2Fgetting-started-microsoft-defender-cloud-2643%2Fintroduction%2F%3Fcontext_resource%3Dlp%26context_id%3D73&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110727859945%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=6%2Fcxch%2Flm17kuDMu85b8iG3wS5CUNLvBYaYYBtGzy5c%3D&reserved=0)
+Academy](https://cloudacademy.com/course/getting-started-microsoft-defender-cloud-2643/introduction/?context_resource=lp&context_id=73)
 
 [Introduction to Cloud Security Posture Management Course \| Cloud
-Academy](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fcloudacademy.com%2Fcourse%2Fintroduction-cloud-security-posture-management-3108%2Fintroduction%2F%3Fcontext_resource%3Dlp%26context_id%3D5872&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110728016203%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=l0rzaZZ9LjXTXEt4vTVr1W%2FVUYuXnBMlUkehS1SNz34%3D&reserved=0)
+Academy](https://cloudacademy.com/course/introduction-cloud-security-posture-management-3108/introduction/?context_resource=lp&context_id=5872)
 
 Enable Defender for Servers along with Agentless scanning
 
 **Microsoft Defender for Servers**
 
 [Keep Calm and Deploy Defender for Servers -
-YouTube](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DtmssJKXFLEY&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110727859945%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=jYtSqQvuyG4v7z1mmfTCCC%2Bm%2FIv09Nb8kE6JmUl0b10%3D&reserved=0)
+YouTube](https://www.youtube.com/watch?v=tmssJKXFLEY)
 
 Looks like he is a captive but goes into depth on FIM and JIT etc
 
 [Defender for Servers - Defender for Cloud 101 -
-YouTube](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DTtaunBhH5AA&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110727859945%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=t7IhqkZ1XTKO%2B%2FnCnihsL446n1EBazwzj3ADM99AwUc%3D&reserved=0)
+YouTube]()
 
 Here are some of the latest training resources on Microsoft Azure Arc
 Enablement:
 
 1.  [How to get started with Azure Arc - Part 1 by Microsoft Azure on
-    YouTube](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DPlyIoPx3kms&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110728328725%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=l%2FkTpZ82hIrZOTw6u6sydorSMsS1Q%2BBgYMRkjZxc6Ms%3D&reserved=0)
+    YouTube](https://youtu.be/TtaunBhH5AA?si=mUAcuWgbvqOswcpE)
 
 2.  [Manage Azure Arc-enabled Servers using Windows Admin Center in
     Azure by Microsoft Azure on
-    YouTube](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D4ptl27a6nPc&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110728484941%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=IGT2ngGI0%2BCuRWnQiVbbtOEdDj4qwWt4%2BW8iVocDOjg%3D&reserved=0)
+    YouTube](https://youtu.be/4ptl27a6nPc?si=Q1b2B7oARHkGiHRK)
 
 In addition to these videos, you can also check out the following
 articles:
 
 1.  [Azure Arc on Microsoft Learn on Microsoft
-    Learn](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Flearn.microsoft.com%2Fen-us%2Ftraining%2Fazure%2Farc&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110728641220%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=alvXaj%2F3Wt724NF9FyurJadBCU6Hsndo4uXy%2FLA%2Ffws%3D&reserved=0)
+    Learn](https://learn.microsoft.com/en-us/training/azure/arc)
 
 2.  [Introduction to Azure Arc on Microsoft
-    Learn](https://nam06.safelinks.protection.outlook.com/?url=https%3A%2F%2Flearn.microsoft.com%2Fen-us%2Ftraining%2Fmodules%2Fintro-to-azure-arc%2F&data=05%7C01%7CAndre.Murrell%40microsoft.com%7C190979e9ffb2453e3f5a08dbc11ee6ef%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C0%7C638316110728641220%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=zLkOa43WuRRN%2FJF7UVu6E9fILO9k9Te0j1DMu8xBWhM%3D&reserved=0)
+    Learn](https://learn.microsoft.com/en-us/training/modules/intro-to-azure-arc/)
