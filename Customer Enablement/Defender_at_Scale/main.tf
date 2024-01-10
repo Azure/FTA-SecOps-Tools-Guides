@@ -87,16 +87,11 @@ resource "azurerm_security_center_subscription_pricing" "mdc_keyvaults" {
    resource_type = "KeyVaults"
 }
  
-resource "azurerm_security_center_subscription_pricing" "mdc_kubernetesservice" {
-   tier = "Standard"
-   resource_type = "KubernetesService"
-}
-
 resource "azurerm_security_center_subscription_pricing" "mdc_sqlservers" {
    tier = "Standard"
    resource_type = "SqlServers"
 }
-
+/*
 resource "azurerm_security_center_setting" "setting_mde" {
   setting_name = "WDATP"
   enabled      = true
@@ -113,8 +108,17 @@ resource "azapi_resource" "setting_agentless_vm" {
   })
   schema_validation_enabled = false
 }
+*/
+#
+# Security Contacts
 
-/*
+resource "azurerm_security_center_contact" "mdc_contact" {
+  email               = "john.doe@contoso.com"
+  phone               = "+351919191919"
+  alert_notifications = true
+  alerts_to_admins    = true
+}
+
 ## QUALYS ENABLEMENT
 
 resource "azurerm_management_group_policy_assignment" "va-auto-provisioning" {
@@ -137,12 +141,14 @@ resource "azurerm_role_assignment" "va-auto-provisioning-identity-role" {
   principal_id       = azurerm_management_group_policy_assignment.va-auto-provisioning.identity[0].principal_id
 }
 
+/*
 ## CSPM ENABLEMENT
 
 resource "azapi_update_resource" "setting_cspm" {
   type      = "Microsoft.Security/pricings@2023-01-01"
   name      = "CloudPosture"
-  parent_id = data.azurerm_management_group.example.id
+  parent_id = var.mgmt_group_name
+  #resource_id = data.azurerm_management_group.example.id
   body = jsonencode({
     properties = {
       pricingTier = "Standard"
@@ -164,17 +170,10 @@ resource "azapi_update_resource" "setting_cspm" {
   })
 }
 
+*/
 
 
-## Security Contacts
-
-resource "azurerm_security_center_contact" "mdc_contact" {
-  email               = "john.doe@contoso.com"
-  phone               = "+351919191919"
-  alert_notifications = true
-  alerts_to_admins    = true
-}
-
+/*
 # Enable Vuln Man
 
 resource "azapi_resource" "DfSMDVMSettings" {
