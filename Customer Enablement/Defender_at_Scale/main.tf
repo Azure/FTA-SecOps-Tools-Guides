@@ -32,6 +32,8 @@ resource "azurerm_management_group_policy_assignment" "mcsb_assignment" {
   management_group_id  = data.azurerm_management_group.example.id
 }
 
+## Turning on Defender for Cloud
+
 resource "azurerm_security_center_subscription_pricing" "mdc_arm" {
   tier          = "Standard"
   resource_type = "Arm"
@@ -91,27 +93,17 @@ resource "azurerm_security_center_subscription_pricing" "mdc_sqlservers" {
    tier = "Standard"
    resource_type = "SqlServers"
 }
-/*
-resource "azurerm_security_center_setting" "setting_mde" {
-  setting_name = "WDATP"
-  enabled      = true
+
+resource "azurerm_security_center_subscription_pricing" "mdc_OpenSourceRelationalDatabases" {
+  tier          = "Standard"
+  resource_type = "OpenSourceRelationalDatabases"
+}
+resource "azurerm_security_center_subscription_pricing" "mdc_Containers" {
+  tier          = "Standard"
+  resource_type = "Containers"
 }
 
-resource "azapi_resource" "setting_agentless_vm" {
-  type      = "Microsoft.Security/vmScanners@2022-03-01-preview"
-  name      = "default"
-  parent_id = data.azurerm_management_group.example.id
-  body = jsonencode({
-    properties = {
-      scanningMode = "Default"
-    }
-  })
-  schema_validation_enabled = false
-}
-*/
-#
 # Security Contacts
-
 resource "azurerm_security_center_contact" "mdc_contact" {
   email               = "john.doe@contoso.com"
   phone               = "+351919191919"
@@ -119,36 +111,24 @@ resource "azurerm_security_center_contact" "mdc_contact" {
   alerts_to_admins    = true
 }
 
-## QUALYS ENABLEMENT
-
-resource "azurerm_management_group_policy_assignment" "va-auto-provisioning" {
-  name                 = "mdc-va-autoprovisioning"
-  display_name         = "Configure machines to receive a vulnerability assessment provider"
-  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/13ce0167-8ca6-4048-8e6b-f996402e3c1b"
-  management_group_id  = data.azurerm_management_group.example.id
-  identity {
-    type = "SystemAssigned"
-  }
-  location   = var.location
-  parameters = <<PARAMS
-{ "vaType": { "value": "default" } }
-PARAMS
+## Enabling Agentless VM
+resource "azapi_resource" "setting_agentless_vm" {
+  type      = "Microsoft.Security/vmScanners@2022-11-20-preview"
+  name      = "default"
+  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
+  body = jsonencode({
+    properties = {
+      scanningMode = "Default"
+    }
+  })
+  schema_validation_enabled = false
 }
 
-resource "azurerm_role_assignment" "va-auto-provisioning-identity-role" {
-  scope              = data.azurerm_management_group.example.id
-  role_definition_id = "/providers/Microsoft.Authorization/roleDefinitions/fb1c8493-542b-48eb-b624-b4c8fea62acd"
-  principal_id       = azurerm_management_group_policy_assignment.va-auto-provisioning.identity[0].principal_id
-}
-
-/*
 ## CSPM ENABLEMENT
-
 resource "azapi_update_resource" "setting_cspm" {
-  type      = "Microsoft.Security/pricings@2023-01-01"
+  type      = "Microsoft.Security/pricings@2022-03-01"
   name      = "CloudPosture"
-  parent_id = var.mgmt_group_name
-  #resource_id = data.azurerm_management_group.example.id
+  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
   body = jsonencode({
     properties = {
       pricingTier = "Standard"
@@ -164,22 +144,21 @@ resource "azapi_update_resource" "setting_cspm" {
         {
           name      = "AgentlessDiscoveryForKubernetes"
           isEnabled = "True"
+        },
+        {
+          name      = "AgentlesssScanningForMachines"
+          isEnabled = "True"
         }
       ]
     }
   })
 }
 
-*/
-
-
-/*
 # Enable Vuln Man
-
 resource "azapi_resource" "DfSMDVMSettings" {
-  type      = "Microsoft.Security/serverVulnerabilityAssessmentsSettings@2022-01-01-preview"
-  name      = "AzureServersSetting"
-  parent_id = data.azurerm_management_group.example.id
+  type      = "Microsoft.Security/serverVulnerabilityAssessments@2020-01-01"
+  name      = "default"
+  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
   body = jsonencode({
     properties = {
       selectedProvider = "MdeTvm"
@@ -188,6 +167,7 @@ resource "azapi_resource" "DfSMDVMSettings" {
   })
   schema_validation_enabled = false
 }
+
 
 /*
 ## Auto Provision LAW
@@ -198,5 +178,12 @@ resource "azurerm_security_center_auto_provisioning" "auto-provisioning" {
 resource "azurerm_security_center_workspace" "auto_sc_workspace" {
   scope        = data.azurerm_management_group.example.id
   workspace_id = "/subscriptions/<subscription id>/resourcegroups/<resource group name>/providers/microsoft.operationalinsights/workspaces/<workspace name>"
+}
+*/
+
+/*
+resource "azurerm_security_center_setting" "setting_mde" {
+  setting_name = "WDATP"
+  enabled      = true
 }
 */
