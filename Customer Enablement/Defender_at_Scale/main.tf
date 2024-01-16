@@ -16,13 +16,6 @@ resource "azurerm_log_analytics_workspace" "la_workspace" {
   sku                 = "PerGB2018"
 }
 
-/*
-resource "azurerm_security_center_workspace" "sc_workspace" {
-  scope        = data.azurerm_management_group.example.id
-  workspace_id = azurerm_log_analytics_workspace.la_workspace.id
-}
-*/
-
 ## Policy Assignment
 
 resource "azurerm_management_group_policy_assignment" "mcsb_assignment" {
@@ -44,6 +37,12 @@ resource "azurerm_security_center_subscription_pricing" "mdc_servers" {
   tier          = "Standard"
   resource_type = "VirtualMachines"
   subplan       = "P2"
+  extension {
+    name = "AgentlessVMScanning"
+  }
+  extension {
+    name = "MdeDesignatedSubscription"
+  }
 }
 
 resource "azurerm_security_center_subscription_pricing" "mdc_cspm" {
@@ -111,79 +110,13 @@ resource "azurerm_security_center_contact" "mdc_contact" {
   alerts_to_admins    = true
 }
 
-## Enabling Agentless VM
-resource "azapi_resource" "setting_agentless_vm" {
-  type      = "Microsoft.Security/vmScanners@2022-11-20-preview"
-  name      = "default"
-  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
-  body = jsonencode({
-    properties = {
-      scanningMode = "Default"
-    }
-  })
-  schema_validation_enabled = false
-}
-
-## CSPM ENABLEMENT
-resource "azapi_update_resource" "setting_cspm" {
-  type      = "Microsoft.Security/pricings@2022-03-01"
-  name      = "CloudPosture"
-  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
-  body = jsonencode({
-    properties = {
-      pricingTier = "Standard"
-      extensions = [
-        {
-          name      = "SensitiveDataDiscovery"
-          isEnabled = "True"
-        },
-        {
-          name      = "ContainerRegistriesVulnerabilityAssessments"
-          isEnabled = "True"
-        },
-        {
-          name      = "AgentlessDiscoveryForKubernetes"
-          isEnabled = "True"
-        },
-        {
-          name      = "AgentlesssScanningForMachines"
-          isEnabled = "True"
-        }
-      ]
-    }
-  })
-}
-
 # Enable Vuln Man
-resource "azapi_resource" "DfSMDVMSettings" {
-  type      = "Microsoft.Security/serverVulnerabilityAssessments@2020-01-01"
-  name      = "default"
-  parent_id = "/providers/Microsoft.Management/managementGroups/${var.mgmt_group_name}"
-  body = jsonencode({
-    properties = {
-      selectedProvider = "MdeTvm"
-    }
-    kind = "AzureServersSetting"
-  })
-  schema_validation_enabled = false
+resource "azurerm_management_group_policy_assignment" "vulassessment_assignment" {
+  name                 = "vulnassessment"
+  display_name         = "Vulnerbility Assessment for Machines"
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/13ce0167-8ca6-4048-8e6b-f996402e3c1b"
+  management_group_id  = data.azurerm_management_group.example.id
+  identity {
+    type = "SystemAssigned"
+  }
 }
-
-
-/*
-## Auto Provision LAW
-
-resource "azurerm_security_center_auto_provisioning" "auto-provisioning" {
-  auto_provision = "On"
-}
-resource "azurerm_security_center_workspace" "auto_sc_workspace" {
-  scope        = data.azurerm_management_group.example.id
-  workspace_id = "/subscriptions/<subscription id>/resourcegroups/<resource group name>/providers/microsoft.operationalinsights/workspaces/<workspace name>"
-}
-*/
-
-/*
-resource "azurerm_security_center_setting" "setting_mde" {
-  setting_name = "WDATP"
-  enabled      = true
-}
-*/
