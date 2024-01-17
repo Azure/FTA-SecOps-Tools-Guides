@@ -123,7 +123,7 @@ resource "azurerm_security_center_subscription_pricing" "mdc_Containers" {
 # Security Contacts
 resource "azurerm_security_center_contact" "mdc_contact" {
   email               = "john.doe@contoso.com"
-  phone               = "+12380183043"
+  phone               = "+15225553043"
   alert_notifications = true
   alerts_to_admins    = true
 }
