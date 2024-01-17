@@ -1,5 +1,3 @@
-
-
 ## Policy Assignment
 
 resource "azurerm_management_group_policy_assignment" "mcsb_assignment" {
@@ -9,7 +7,7 @@ resource "azurerm_management_group_policy_assignment" "mcsb_assignment" {
   management_group_id  = data.azurerm_management_group.example.id
 }
 
-# Enable Vuln Man
+# Enable Vulnerability Assessment for Servers
 resource "azurerm_management_group_policy_assignment" "va_assignment" {
   name                 = "vuln-assess-servers"
   display_name         = "Vulnerbility Assessment for Machines"
@@ -21,6 +19,7 @@ resource "azurerm_management_group_policy_assignment" "va_assignment" {
   }
 }
 
+# Deploying Defender agent in Azure for Kubernetes
 resource "azurerm_management_group_policy_assignment" "def_profile" {
   name =  "defender-profile"
   display_name = "Defender Profile"
@@ -32,6 +31,7 @@ resource "azurerm_management_group_policy_assignment" "def_profile" {
   }
 }
 
+# Deploying Defender agent in Azure for Arc Kubernetes
 resource "azurerm_management_group_policy_assignment" "arc_def_profile" {
   name =  "arc-defender-profile"
   display_name = "Arc Defender Profile"
@@ -44,7 +44,6 @@ resource "azurerm_management_group_policy_assignment" "arc_def_profile" {
 }
 
 ## Turning on Defender for Cloud
-
 resource "azurerm_security_center_subscription_pricing" "mdc_arm" {
   tier          = "Standard"
   resource_type = "Arm"
