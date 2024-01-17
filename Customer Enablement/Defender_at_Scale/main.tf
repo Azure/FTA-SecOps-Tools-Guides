@@ -37,6 +37,28 @@ resource "azurerm_management_group_policy_assignment" "va_assignment" {
   }
 }
 
+resource "azurerm_management_group_policy_assignment" "def_profile" {
+  name =  "defender-profile"
+  display_name = "Defender Profile"
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/64def556-fbad-4622-930e-72d1d5589bf5"
+  management_group_id = data.azurerm_management_group.example.id
+  location = var.location
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_management_group_policy_assignment" "arc_def_profile" {
+  name =  "arc-defender-profile"
+  display_name = "Arc Defender Profile"
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/708b60a6-d253-4fe0-9114-4be4c00f012c"
+  management_group_id = data.azurerm_management_group.example.id
+  location = var.location
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
 ## Turning on Defender for Cloud
 
 resource "azurerm_security_center_subscription_pricing" "mdc_arm" {
@@ -109,6 +131,7 @@ resource "azurerm_security_center_subscription_pricing" "mdc_OpenSourceRelationa
   tier          = "Standard"
   resource_type = "OpenSourceRelationalDatabases"
 }
+
 resource "azurerm_security_center_subscription_pricing" "mdc_Containers" {
   tier          = "Standard"
   resource_type = "Containers"
