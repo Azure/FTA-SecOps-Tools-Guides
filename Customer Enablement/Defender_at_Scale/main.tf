@@ -25,6 +25,18 @@ resource "azurerm_management_group_policy_assignment" "mcsb_assignment" {
   management_group_id  = data.azurerm_management_group.example.id
 }
 
+# Enable Vuln Man
+resource "azurerm_management_group_policy_assignment" "va_assignment" {
+  name                 = "vuln-assess-servers"
+  display_name         = "Vulnerbility Assessment for Machines"
+  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/13ce0167-8ca6-4048-8e6b-f996402e3c1b"
+  management_group_id  = data.azurerm_management_group.example.id
+  location = var.location
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
 ## Turning on Defender for Cloud
 
 resource "azurerm_security_center_subscription_pricing" "mdc_arm" {
@@ -105,18 +117,8 @@ resource "azurerm_security_center_subscription_pricing" "mdc_Containers" {
 # Security Contacts
 resource "azurerm_security_center_contact" "mdc_contact" {
   email               = "john.doe@contoso.com"
-  phone               = "+351919191919"
+  phone               = "+12380183043"
   alert_notifications = true
   alerts_to_admins    = true
 }
 
-# Enable Vuln Man
-resource "azurerm_management_group_policy_assignment" "vulassessment_assignment" {
-  name                 = "vulnassessment"
-  display_name         = "Vulnerbility Assessment for Machines"
-  policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/13ce0167-8ca6-4048-8e6b-f996402e3c1b"
-  management_group_id  = data.azurerm_management_group.example.id
-  identity {
-    type = "SystemAssigned"
-  }
-}
