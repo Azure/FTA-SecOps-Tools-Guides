@@ -6,7 +6,7 @@ variable "mgmt_group_name" {
 
 variable "resource_group_name" {
   type        = string
-  description = "Specifies the name or UUID of this Resource Group."
+  description = "Specifies the name of this Resource Group."
   default     = "testing_resource_group" // Change this to your resource group ID
 }
 
@@ -15,3 +15,4 @@ variable "location" {
   description = "Specifies the Azure location where the Resource Group should exist."
   default     = "eastus" // Change this to your location
 }
+
