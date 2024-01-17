@@ -1,7 +1,3 @@
-## Current Management Group
-data "azurerm_management_group" "example" {
-  name = var.mgmt_group_name
-}
 resource "azurerm_resource_group" "security_rg" {
   name     = var.resource_group_name
   location = var.location
