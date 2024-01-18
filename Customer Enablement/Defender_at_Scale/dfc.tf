@@ -43,7 +43,7 @@ resource "azurerm_management_group_policy_assignment" "arc_def_profile" {
   }
 }
 
-## Turning on Defender for Cloud
+## Turning on Defender for Cloud Componets
 resource "azurerm_security_center_subscription_pricing" "mdc_arm" {
   tier          = "Standard"
   resource_type = "Arm"
@@ -120,11 +120,26 @@ resource "azurerm_security_center_subscription_pricing" "mdc_Containers" {
   resource_type = "Containers"
 }
 
+resource "azurerm_security_center_subscription_pricing" "mdc_api" {
+  tier          = "Standard"
+  resource_type = "Api"
+}
+
 # Security Contacts
 resource "azurerm_security_center_contact" "mdc_contact" {
   email               = "john.doe@contoso.com"
   phone               = "+15225553043"
   alert_notifications = true
   alerts_to_admins    = true
+}
+
+## Auto Provision LAW
+resource "azurerm_security_center_auto_provisioning" "auto-provisioning" {
+  auto_provision = "On" 
+}
+
+resource "azurerm_security_center_workspace" "auto_sc_workspace" {
+  scope        = data.azurerm_management_group.example.id
+  workspace_id = "/subscriptions/9e087dff-9c5b-4650-96ee-19cfe5269c5d/resourceGroups/rg-law-eus-001/providers/Microsoft.OperationalInsights/workspaces/law-eus-001"
 }
 
