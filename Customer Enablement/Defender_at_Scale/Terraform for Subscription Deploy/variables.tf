@@ -1,7 +1,7 @@
 variable "subscription_id" {
   type        = string
   description = "Specifies the name or UUID of the Subscription."
-  default = "/subscriptions/adeb6b55-d404-465f-884c-a232d0135aad"
+  default = "/subscriptions/[subscriptionid]"
 }
 
 variable "resource_group_name" {
