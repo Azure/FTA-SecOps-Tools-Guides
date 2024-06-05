@@ -1,3 +1,53 @@
+<#  
+  .SYNOPSIS  
+    This script will create the required resources and configurations to stream alerts from Microsoft Defender for Cloud to 3rd party SIEM.
+      
+  .DESCRIPTION  
+    This script will....
+    
+  .PARAMETER TenantId
+    [mandatory] 
+    The tenant Id used to connect to Azure.
+
+  .PARAMETER ServerPlan
+    [mandatory] 
+    Server plan to apply when enabling Defender for Servers Choices are P1 or P2.
+
+  .PARAMETER SubscriptionFilePath
+    [mandatory]
+    The file path for the file that contains the list of subscriptions to apply the settings.
+
+  .PARAMETER enableDefenderServers
+    Switch to enable or disable Defender for Servers. True by default
+    
+  .PARAMETER disableMDEAutoprovisiong
+    Switch to enable or disable MDE Autoprovisioning. False by default
+
+  .PARAMETER enableMdeWindows20122016
+    Switch to enable or disable the Unified WDATP agent. False by default
+
+  .PARAMETER installMonitorAgent
+    Switch to install the Azure Monitor Agent or not. False by default
+
+  .PARAMETER installMde
+    Switch to install the Microsoft Defender for Endpoint or not. False by default
+
+  .EXAMPLE
+  .\EnableDfSMultiSubscriptions.ps1 -TenantId "79xxxxxx-xxxx-xxxx-xxxx-0a6ec6xxxxxx" -ServerPlan "P2" -SubscriptionFilePath "SubscriptionList.csv"
+
+  .EXAMPLE
+  .\EnableDfSMultiSubscriptions.ps1 -TenantId "79xxxxxx-xxxx-xxxx-xxxx-0a6ec6xxxxxx" -ServerPlan "P2" -SubscriptionFilePath "SubscriptionList.csv" -enableDefenderServers $true -disableMDEAutoprovisiong $true -disableAMAAutoprovisioning $true -enableMdeWindows20122016 $false -installMonitorAgent $false -installMde $false
+
+  .NOTES
+    AUTHOR: Patrice Lacroix
+    LASTEDIT: June 6th, 2024
+      - 0.1 change log: Initial commit
+
+  .LINK
+      This script posted to and discussed at the following locations:
+      https://github.com.../
+#>
+
 [CmdletBinding()]
 param (
     [Parameter(Mandatory=$true)]
@@ -6,16 +56,12 @@ param (
     [string]$ServerPlan,
     [Parameter(Mandatory=$true)]
     [string]$SubscriptionFilePath,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [bool]$enableDefenderServers = $true,
     [Parameter(Mandatory=$false)]
     [bool]$disableMDEAutoprovisiong = $false,
     [Parameter(Mandatory=$false)]
-    [bool]$disableAMAAutoprovisioning = $false,
-    [Parameter(Mandatory=$false)]
     [bool]$enableMdeWindows20122016 = $false,
-    [Parameter(Mandatory=$false)]
-    [bool]$installSecurityAgent = $false,
     [Parameter(Mandatory=$false)]
     [bool]$installMonitorAgent = $false,
     [Parameter(Mandatory=$false)]
@@ -45,7 +91,6 @@ function SetMDEAutoprovisiong {
         [Parameter(Mandatory=$false)]
         [bool]$disableMDEAutoprovisiong
     )
-    Write-Output "Begin SetMDEAutoprovisiong"
     
     #Get Security Settings for Sentinel, MCAS, WDATP(MDE), Unified and Linux
     #Get-AzSecuritySetting
@@ -69,33 +114,10 @@ function SetMDEAutoprovisiong {
 }
 
 #-------------------------------------------------------------------------------------------------------------------
-#Enable/Disable Azure Monitoring Agent Autoprovisiong
-#-------------------------------------------------------------------------------------------------------------------
-function SetAMAAutoprovisioning {
-    param (
-        [Parameter(Mandatory=$true)]
-        [bool]$disableAMAAutoprovisioning
-    )
-    #Turn autoprovisioning off
-    if ($disableAMAAutoprovisioning) {
-        Write-Output "Azure Monitoring Agent autoprovisioning will now be turned off your Subscription for any current and future systems"
-        #This default setting should now be turned off. 
-        Set-AzSecurityAutoProvisioningSetting -Name "default"
-    }
-    else {
-        Write-Output "Azure Monitoring Agent will now be autoprovisioned across your Subscription for any current and future systems"
-        #Turn autoprovisioning on
-        Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
-    }
-}
-
-#-------------------------------------------------------------------------------------------------------------------
 # Install Extensions for enablement
 #-------------------------------------------------------------------------------------------------------------------
 function InstallExtensions {
     param (
-        [Parameter(Mandatory = $true)]
-        [bool]$installSecurityAgent,
         [Parameter(Mandatory = $true)]
         [bool]$installMonitorAgent,
         [Parameter(Mandatory = $true)]
@@ -103,19 +125,29 @@ function InstallExtensions {
     )
     try
 	{
-		# Get all virtual machines, VMSSs, and ARC machines
-        Write-Output "Get all virtual machines, VMSSs, and ARC machines"
+		# Get all virtual machines and ARC machines
+        Write-Output "Get all virtual machines and ARC machines"
         $VMs = Get-AzResource -ResourceType "Microsoft.Compute/virtualMachines"
-        #$VMSSs = Get-AzResource -ResourceType "Microsoft.Compute/virtualMachineScaleSets" -ResourceGroupName $resourceGroup
-        #$arcMachines = Get-AzResource -ResourceType "Microsoft.HybridCompute/machines" -ResourceGroupName $resourceGroup
+        $arcMachines = Get-AzResource -ResourceType "Microsoft.HybridCompute/machines"
 
+        Write-Output "Get all VMs"
         if ($null -ne $VMs) {
             foreach ($vm in $VMs) {
                 Write-Output "Installing extensions for VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
-                InstallExtensionsForVM -installSecurityAgent $installSecurityAgent -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vm.ResourceGroupName -vmName $vm.Name
+                InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vm.ResourceGroupName -vmName $vm.Name
             }
         } else {
-            Write-Output "No VMs found in the resource group."
+            Write-Output "No VMs found"
+        }
+
+        Write-Output "Get all Arc Machines"
+        if ($null -ne $arcMachines) {
+            foreach ($vm in $arcMachines) {
+                Write-Output "Installing extensions for Arc VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
+                InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vm.ResourceGroupName -vmName $vm.Name
+            }
+        } else {
+            Write-Output "No Arc Machines found"
         }
     }
 	catch 
@@ -127,8 +159,6 @@ function InstallExtensions {
 
 function InstallExtensionsForVM {
     param (
-        [Parameter(Mandatory = $true)]
-        [bool]$installSecurityAgent,
         [Parameter(Mandatory = $true)]
         [bool]$installMonitorAgent,
         [Parameter(Mandatory = $true)]
@@ -149,20 +179,6 @@ function InstallExtensionsForVM {
     }
     else {
         Write-Output "VM is Linux..."
-    }
-
-    # Install Azure Security Windows Agent extension for onboarding to Defender for Cloud and MDE vulnerability assessment
-    if ($installSecurityAgent) {
-        Write-Output "Installing Azure Security Windows Agent extension..."
-        if($osType -eq "Windows") {
-            Set-AzVMExtension -ResourceGroupName $rgName -VMName $vmName -Name "AzureSecurityWindowsAgent" -ExtensionType "AzureSecurityWindowsAgent" -Publisher "Microsoft.Azure.Security.Monitoring" -TypeHandlerVersion "1.0"
-        }
-        else {
-            Set-AzVMExtension -ResourceGroupName $rgName -VMName $vmName -Name "AzureSecurityLinuxAgent" -ExtensionType "AzureSecurityLinuxAgent" -Publisher "Microsoft.Azure.Security.Monitoring" -TypeHandlerVersion "1.0"
-        }
-    }
-    else {
-        Write-Output "Not installing Azure Security Agent. Continuing to next step......"
     }
 
     # Install Azure Monitor Windows Agent extension
@@ -213,15 +229,13 @@ function InstallExtensionsForVM {
 Write-Output "Connecting to Azure"
 Connect-AzAccount -Tenant $TenantId
 
-
 # Read subscriptions from the file
 $Subscriptions = Get-Content -Path $SubscriptionFilePath
 
 try {
     if ($null -ne $Subscriptions) {
         foreach ($sub in $Subscriptions) {
-            Write-Output "Sub: $sub"
-            Write-Output "Setting the subscription context..."
+            Write-Output "Setting the subscription context to $sub..."
             $subscription = Get-AzSubscription -SubscriptionId $sub
             Set-AzContext -Subscription $subscription
             Write-Output "Subscription $($subscription.Name) is selected"
@@ -232,11 +246,8 @@ try {
             Write-Output "Calling SetMDEAutoprovisiong..."
             SetMDEAutoprovisiong -disableMDEAutoprovisiong $disableMDEAutoprovisiong
 
-            Write-Output "Calling SetAMAAutoprovisioning..."
-            SetAMAAutoprovisioning -disableAMAAutoprovisioning $disableAMAAutoprovisioning
-
             Write-Output "Calling InstallExtensions..."
-            InstallExtensions -installSecurityAgent $installSecurityAgent -installMonitorAgent $installMonitorAgent -installMde $installMde
+            InstallExtensions -installMonitorAgent $installMonitorAgent -installMde $installMde
         }
     }
 }
