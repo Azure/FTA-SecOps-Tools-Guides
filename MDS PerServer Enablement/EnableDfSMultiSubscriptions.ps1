@@ -128,13 +128,21 @@ function InstallExtensions {
 		# Get all virtual machines and ARC machines
         Write-Output "Get all virtual machines and ARC machines"
         $VMs = Get-AzResource -ResourceType "Microsoft.Compute/virtualMachines"
+        $VMSSs = Get-AzResource -ResourceType "Microsoft.Compute/virtualMachineScaleSets"
         $arcMachines = Get-AzResource -ResourceType "Microsoft.HybridCompute/machines"
 
         Write-Output "Get all VMs"
         if ($null -ne $VMs) {
             foreach ($vm in $VMs) {
-                Write-Output "Installing extensions for VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
-                InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vm.ResourceGroupName -vmName $vm.Name
+                $vm = Get-AzVM -ResourceGroupName $vm.ResourceGroupName -Name $vm.Name
+
+                # Check if the VM is part of a VMSS
+                if ($null -eq $vm.VirtualMachineScaleSet) {
+                    Write-Output "Installing extensions for VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
+                    InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -vm $vm
+                } else {
+                    Write-Output "The VM is part of a VMSS, Ignoring"
+                }
             }
         } else {
             Write-Output "No VMs found"
@@ -143,18 +151,28 @@ function InstallExtensions {
         Write-Output "Get all Arc Machines"
         if ($null -ne $arcMachines) {
             foreach ($vm in $arcMachines) {
+                $vm = Get-AzVM -ResourceGroupName $vm.ResourceGroupName -Name $vm.Name
                 Write-Output "Installing extensions for Arc VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
                 InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vm.ResourceGroupName -vmName $vm.Name
             }
         } else {
             Write-Output "No Arc Machines found"
         }
+
+        Write-Output "Get all VMSSs"
+        if ($null -ne $VMSSs) {
+            foreach ($vmSS in $VMSSs) {
+                Write-Output "Installing extensions for VMSS: $($vmSS.Name) in Resource Group: $($vmSS.ResourceGroupName)"
+                InstallExtensionsForVMSS -installMonitorAgent $installMonitorAgent -installMde $installMde -rgName $vmSS.ResourceGroupName -vmSSName $vmSS.Name
+            }
+        } else {
+            Write-Output "No VMSSs found"
+        }
     }
 	catch 
 	{
 		Write-Host "Failed to Get resources! " -ForegroundColor Red
 	}
-
 }
 
 function InstallExtensionsForVM {
@@ -164,23 +182,18 @@ function InstallExtensionsForVM {
         [Parameter(Mandatory = $true)]
         [bool]$installMde,
         [Parameter(Mandatory = $true)]
-        [string]$rgName,
-        [Parameter(Mandatory = $true)]
-        [string]$vmName
+        [Object]$vm
     )
-
-    $vm = Get-AzVM -ResourceGroupName $rgName -Name $vmName
-    $osType = $vm.StorageProfile.OsDisk.OsType
-    
+   
     # Find out if VM is Windows or Linux
-
+    $osType = $vm.StorageProfile.OsDisk.OsType
     if($osType -eq "Windows") {
         Write-Output "VM is Windows..."
     }
     else {
         Write-Output "VM is Linux..."
     }
-
+    
     # Install Azure Monitor Windows Agent extension
     if ($installMonitorAgent) {
         Write-Output "Installing Azure Monitor Windows Agent extension..."
@@ -215,7 +228,75 @@ function InstallExtensionsForVM {
         }
         else {
             Set-AzVMExtension -Name 'MDE.Linux' -ExtensionType 'MDE.Linux' -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Location $vm.Location -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Settings $Setting -ProtectedSettings $protectedSetting -TypeHandlerVersion '1.0'
-        }        
+        }      
+    }
+    else {
+        Write-Output "Not Installing Microsoft Defender for Endpoint. Script Complete"
+    }
+}
+
+function InstallExtensionsForVMSS {
+    param (
+        [Parameter(Mandatory = $true)]
+        [bool]$installMonitorAgent,
+        [Parameter(Mandatory = $true)]
+        [bool]$installMde,
+        [Parameter(Mandatory = $true)]
+        [string]$rgName,
+        [Parameter(Mandatory = $true)]
+        [string]$vmSSName        
+    )
+
+    $vmSS = Get-AzVmss -ResourceGroupName $rgName -Name $vmSSName
+    $osType = $vmSS.VirtualMachineProfile.StorageProfile.OsDisk.OsType
+    
+    # Find out if VMSS is Windows or Linux
+    if($osType -eq "Windows") {
+        Write-Output "VMSS is Windows..."
+    }
+    else {
+        Write-Output "VMSS is Linux..."
+    }
+
+    # Install Azure Monitor Windows Agent extension
+    if ($installMonitorAgent) {
+        Write-Output "Installing Azure Monitor Windows Agent extension for VMSS..."
+        if($osType -eq "Windows") {
+            Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name "AzureMonitorWindowsAgent" -ExtensionType "AzureMonitorWindowsAgent" -Publisher "Microsoft.Azure.Monitor" -TypeHandlerVersion "1.0"
+        }
+        else {
+            Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name "AzureMonitorLinuxAgent" -ExtensionType "AzureMonitorLinuxAgent" -Publisher "Microsoft.Azure.Monitor" -TypeHandlerVersion "1.0"
+        }
+        # Update the VMSS
+        Update-AzVmss -ResourceGroupName $vmSS.ResourceGroupName -Name $vmSS.Name -VirtualMachineScaleSet $vmss
+    }
+    else {
+        Write-Output "Not installing Azure Monitoring Agent. Continuing to next step......"
+    }
+
+    # Install Microsoft Defender for Endpoint
+    if ($installMde) {
+        Write-Output "Installing Microsoft Defender for Endpoint on VMSS..."
+        
+        $mdePackage = Invoke-AzRestMethod -Uri https://management.azure.com/subscriptions/$($vmSS.Id.split('/')[2])/providers/Microsoft.Security/mdeOnboardings/?api-version=2021-10-01-preview
+
+        #You can add forceReOnboarding = $true below if you want to force onboarding again
+        $Setting = @{
+            "azureResourceId" = $vmSS.Id
+            "vNextEnabled"    = $true
+        }
+        $protectedSetting = @{
+            "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageWindows
+        }
+        
+        if($osType -eq "Windows") {
+            write-output "Installing MDE.Windows extension"
+            Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name 'MDE.Windows' -Type 'MDE.Windows' -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Setting $Setting -ProtectedSetting $protectedSetting -TypeHandlerVersion '1.0'
+        }
+        else {
+            write-output "Installing MDE.Linux extension"
+            Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name 'MDE.Linux' -Type 'MDE.Linux' -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Setting $Setting -ProtectedSetting $protectedSetting -TypeHandlerVersion '1.0'
+        }      
     }
     else {
         Write-Output "Not Installing Microsoft Defender for Endpoint. Script Complete"
