@@ -23,6 +23,12 @@
   .PARAMETER disableMDEAutoprovisiong
     Switch to enable or disable MDE Autoprovisioning. False by default
 
+  .PARAMETER disableAMAAutoprovisioning
+    Switch to enable or disable AMA Autoprovisioning. False by default
+
+  .PARAMETER disableAgentlessScanning
+    Switch to enable or disable Agentless scanning for Machine. False by default
+
   .PARAMETER enableMdeWindows20122016
     Switch to enable or disable the Unified WDATP agent. False by default
 
@@ -61,6 +67,10 @@ param (
     [Parameter(Mandatory=$false)]
     [bool]$disableMDEAutoprovisiong = $false,
     [Parameter(Mandatory=$false)]
+    [bool]$disableAMAAutoprovisioning = $false,
+    [Parameter(Mandatory=$false)]
+    [bool]$disableAgentlessScanning = $false,
+    [Parameter(Mandatory=$false)]
     [bool]$enableMdeWindows20122016 = $false,
     [Parameter(Mandatory=$false)]
     [bool]$installMonitorAgent = $false,
@@ -78,8 +88,28 @@ function EnableDefenderForServers {
     )
 
     if ($enableDefenderServers) {
-        Write-Output "Enabling Defender for Servers on the subscription..."
-        Set-AzSecurityPricing -Name "VirtualMachines" -PricingTier "Standard" -SubPlan $ServerPlan
+        Write-Output "Enabling Defender for Servers $($ServerPlan) on the subscription..."
+        Set-AzSecurityPricing -Name "VirtualMachines" -PricingTier "Standard" -SubPlan $ServerPlan 
+    }
+}
+
+#--------------------------------------------------------------------------------------------------------------------
+# Enable/ Disable Agentless Scanning for Servers
+#--------------------------------------------------------------------------------------------------------------------
+function SetAgentlessScanning {
+    param (
+        [Parameter(Mandatory=$true)]
+        [bool]$disableAgentlessScanning
+    )
+
+    if ($disableAgentlessScanning)
+    {
+        Write-Output "Disabling Agentless Scanning for Machines..."
+        Set-AzSecurityPricing -Name "VirtualMachines" -PricingTier "Standard" -Extension '[{"name":"AgentlessVmScanning","isEnabled":"False"}]'  
+    }
+    else
+    {
+        Set-AzSecurityPricing -Name "VirtualMachines" -PricingTier "Standard" -Extension '[{"name":"AgentlessVmScanning","isEnabled":"True"}]' 
     }
 }
 
@@ -114,6 +144,27 @@ function SetMDEAutoprovisiong {
 }
 
 #-------------------------------------------------------------------------------------------------------------------
+#Enable/Disable Azure Monitoring Agent Autoprovisiong
+#-------------------------------------------------------------------------------------------------------------------
+function SetAMAAutoprovisiong {
+    param (
+        [Parameter(Mandatory=$false)]
+        [bool]$disableAMAAutoprovisioning
+    )
+
+    #Turn autoprovisioning off
+    if ($disableAMAAutoprovisioning) {
+        #This default setting should now be turned off. 
+        Write-Output "Azure Monitoring Agent will not be autoprovisioned"
+        Set-AzSecurityAutoProvisioningSetting -Name "default"
+    }
+    else { 
+        #Turn autoprovisioning on
+        Write-Output "Azure Monitoring Agent will now be autoprovisioned across your Subscription for any current and future systems"
+        Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
+    }
+}
+#-------------------------------------------------------------------------------------------------------------------
 # Install Extensions for enablement
 #-------------------------------------------------------------------------------------------------------------------
 function InstallExtensions {
@@ -131,24 +182,19 @@ function InstallExtensions {
         $VMSSs = Get-AzResource -ResourceType "Microsoft.Compute/virtualMachineScaleSets"
         $arcMachines = Get-AzResource -ResourceType "Microsoft.HybridCompute/machines"
 
-        Write-Output "Get all VMs"
+        Write-Output "Getting all VMs"
         if ($null -ne $VMs) {
             foreach ($vm in $VMs) {
                 $vm = Get-AzVM -ResourceGroupName $vm.ResourceGroupName -Name $vm.Name
 
-                # Check if the VM is part of a VMSS
-                if ($null -eq $vm.VirtualMachineScaleSet) {
-                    Write-Output "Installing extensions for VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
-                    InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -vm $vm
-                } else {
-                    Write-Output "The VM is part of a VMSS, Ignoring"
-                }
+                Write-Output "Installing extensions for VM: $($vm.Name) in Resource Group: $($vm.ResourceGroupName)"
+                InstallExtensionsForVM -installMonitorAgent $installMonitorAgent -installMde $installMde -vm $vm
             }
         } else {
             Write-Output "No VMs found"
         }
 
-        Write-Output "Get all Arc Machines"
+        Write-Output "Getting all Arc Machines"
         if ($null -ne $arcMachines) {
             foreach ($vm in $arcMachines) {
                 $vm = Get-AzVM -ResourceGroupName $vm.ResourceGroupName -Name $vm.Name
@@ -193,7 +239,7 @@ function InstallExtensionsForVM {
     else {
         Write-Output "VM is Linux..."
     }
-    
+        
     # Install Azure Monitor Windows Agent extension
     if ($installMonitorAgent) {
         Write-Output "Installing Azure Monitor Windows Agent extension..."
@@ -224,9 +270,15 @@ function InstallExtensionsForVM {
         }
         
         if($osType -eq "Windows") {
+            $protectedSetting = @{
+                "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageWindows
+            }
             Set-AzVMExtension -Name 'MDE.Windows' -ExtensionType 'MDE.Windows' -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Location $vm.Location -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Settings $Setting -ProtectedSettings $protectedSetting -TypeHandlerVersion '1.0'
         }
         else {
+            $protectedSetting = @{
+                "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageLinux
+            }
             Set-AzVMExtension -Name 'MDE.Linux' -ExtensionType 'MDE.Linux' -ResourceGroupName $vm.ResourceGroupName -VMName $vm.Name -Location $vm.Location -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Settings $Setting -ProtectedSettings $protectedSetting -TypeHandlerVersion '1.0'
         }      
     }
@@ -285,18 +337,23 @@ function InstallExtensionsForVMSS {
             "azureResourceId" = $vmSS.Id
             "vNextEnabled"    = $true
         }
-        $protectedSetting = @{
-            "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageWindows
-        }
         
         if($osType -eq "Windows") {
             write-output "Installing MDE.Windows extension"
+            $protectedSetting = @{
+                "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageWindows
+            }
             Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name 'MDE.Windows' -Type 'MDE.Windows' -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Setting $Setting -ProtectedSetting $protectedSetting -TypeHandlerVersion '1.0'
         }
         else {
             write-output "Installing MDE.Linux extension"
+            $protectedSetting = @{
+                "defenderForEndpointOnboardingScript" = ($mdePackage.content | ConvertFrom-Json).value.properties.onboardingPackageLinux
+            }
             Add-AzVmssExtension -VirtualMachineScaleSet $vmSS -Name 'MDE.Linux' -Type 'MDE.Linux' -Publisher 'Microsoft.Azure.AzureDefenderForServers' -Setting $Setting -ProtectedSetting $protectedSetting -TypeHandlerVersion '1.0'
         }      
+        # Update the VMSS
+        Update-AzVmss -ResourceGroupName $vmSS.ResourceGroupName -Name $vmSS.Name -VirtualMachineScaleSet $vmss
     }
     else {
         Write-Output "Not Installing Microsoft Defender for Endpoint. Script Complete"
@@ -324,11 +381,20 @@ try {
             Write-Output "Calling EnableDefenderForServers..."
             EnableDefenderForServers -enableDefenderServers $enableDefenderServers
 
+            Write-Output "Calling SetAgentlessScanning..."
+            SetAgentlessScanning -disableAgentlessScanning $disableAgentlessScanning
+
             Write-Output "Calling SetMDEAutoprovisiong..."
             SetMDEAutoprovisiong -disableMDEAutoprovisiong $disableMDEAutoprovisiong
 
-            Write-Output "Calling InstallExtensions..."
-            InstallExtensions -installMonitorAgent $installMonitorAgent -installMde $installMde
+            Write-Output "Calling SetAMAAutoprovisiong..."
+            SetAMAAutoprovisiong -disableAMAAutoprovisioning $disableAMAAutoprovisioning
+            
+            if ($installMonitorAgent -or $installMde)
+            {
+                Write-Output "Calling InstallExtensions..."
+                InstallExtensions -installMonitorAgent $installMonitorAgent -installMde $installMde
+            }
         }
     }
 }
